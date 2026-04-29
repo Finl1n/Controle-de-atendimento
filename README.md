@@ -13,12 +13,6 @@ O sistema foi desenvolvido para atender ao desafio tecnico com foco em:
 - listagem com status, setor, prioridade e tempo total
 - destaque visual para chamados que ultrapassam o SLA
 
-## Link online
-
-Versao online do projeto:
-
-- [coloque aqui o link do deploy final](https://seu-link-online-aqui)
-
 ## Como rodar localmente
 
 1. Instale o PHP com suporte a `pdo_sqlite`.
@@ -88,34 +82,8 @@ Se quiser testar do zero:
 2. Apague o arquivo `database/app.sqlite`.
 3. Abra a aplicacao novamente.
 
-## Observacao sobre o JavaScript
+## Link online
 
-O projeto usa JavaScript apenas para melhorar a interface:
+Versao online do projeto:
 
-- abrir a mini tela de finalizacao
-- ajustar o tempo estimado com botao `+` e `-`
-- preencher o SLA padrao conforme a prioridade escolhida
-
-A logica principal continua toda em PHP.
-
-## Publicacao online
-
-O projeto foi preparado para ser enviado para uma hospedagem PHP com SQLite e `.htaccess`.
-Se precisar, o `README` pode receber aqui no final o link definitivo do deploy.
-
-## Organizacao do codigo
-
-O projeto foi separado para ficar facil de entender e manter:
-
-- HTML separado da logica
-- CSS separado em arquivo proprio
-- JavaScript separado em arquivo proprio
-- paginas divididas por responsabilidade
-
-## Entrega
-
-Ao enviar para avaliacao, compartilhe:
-
-- o repositorio no GitHub
-- o link online do projeto
-- este `README` atualizado com as instrucoes de execucao
+- https://finl1n.alwaysdata.net/
