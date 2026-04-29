@@ -1,0 +1,2 @@
+-- Base zerada para cadastro manual durante os testes.
+-- As tabelas sao criadas por `database/schema.sql`.
