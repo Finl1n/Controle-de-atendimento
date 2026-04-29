@@ -1,0 +1,7 @@
+RewriteEngine On
+
+# Redirect everything to the public folder so the project can be deployed from the repository root.
+RewriteCond %{REQUEST_URI} !^/public/
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ public/$1 [L]

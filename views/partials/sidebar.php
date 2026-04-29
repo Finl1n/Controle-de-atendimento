@@ -2,7 +2,7 @@
     <div class="brand">
         <div class="brand-mark">+</div>
         <div>
-            <div class="brand-name">W5i</div>
+            <div class="brand-name">Controle de Atendimentos</div>
             <div class="brand-subtitle">Atendimento interno</div>
         </div>
     </div>

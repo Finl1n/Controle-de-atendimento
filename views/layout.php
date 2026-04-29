@@ -6,7 +6,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>W5i - Controle de Atendimentos</title>
+    <title>Controle de Atendimentos</title>
     <link rel="stylesheet" href="/assets/css/app.css">
 </head>
 <body>
