@@ -1,10 +1,3 @@
-# Controle de Atendimentos
-
-Aplicação em PHP puro com SQLite para gerenciar chamados de suporte e solicitações internas.
-
-Versão online:
-- https://finl1n.alwaysdata.net/
-
 ## O que este projeto entrega
 
 O sistema foi organizado para cobrir os requisitos do desafio e deixar a operação fácil de entender:
@@ -111,7 +104,10 @@ Para testar do zero:
 - A interface foi pensada para funcionar bem em desktop e mobile.
 - O JavaScript é usado apenas para pequenos detalhes de interação, como o stepper de horas e o modal de encerramento.
 
-## Estrutura de entrega
+# Controle de Atendimentos
 
-O projeto pode ser revisado diretamente no repositório e testado online no endereço acima.  
-A organização de pastas foi mantida para facilitar manutenção, leitura e avaliação.
+Aplicação em PHP puro com SQLite para gerenciar chamados de suporte e solicitações internas.
+
+Versão online:
+
+- https://finl1n.alwaysdata.net/
