@@ -1,16 +1,35 @@
-<section class="section-card">
+<section class="section-card monitor-card">
     <div class="section-title">
         <div>
             <h2>Acompanhamento</h2>
-            <p>Visualize o ciclo dos chamados e execute check-in ou check-out.</p>
+            <p>Visualize o ciclo dos chamados e acompanhe o histórico de atendimento.</p>
         </div>
-        <div class="pill"><?= count($tickets) ?> itens</div>
+        <div class="pill"><?= count($monitorTickets) ?> itens</div>
+    </div>
+
+    <div class="monitor-filters">
+        <?php
+            $filterOptions = [
+                'all' => 'Todas',
+                'open' => 'Aguardando',
+                'progress' => 'Em atendimento',
+                'finished' => 'Finalizados',
+            ];
+        ?>
+        <?php foreach ($filterOptions as $filterKey => $filterLabel): ?>
+            <a
+                class="monitor-filter <?= $monitorStatusFilter === $filterKey ? 'monitor-filter--active' : '' ?>"
+                href="?page=monitor&status=<?= Formatter::e($filterKey) ?>"
+            >
+                <?= Formatter::e($filterLabel) ?>
+            </a>
+        <?php endforeach; ?>
     </div>
 
     <div class="summary-grid monitor-summary">
         <div class="summary-card tone-neutral">
             <span class="meta">Total</span>
-            <strong><?= (int) $summary['total'] ?></strong>
+            <strong><?= (int) count($monitorTickets) ?></strong>
         </div>
         <div class="summary-card tone-blue">
             <span class="meta">Abertos</span>
@@ -26,54 +45,102 @@
         </div>
     </div>
 
-    <div class="table-wrap">
-        <table>
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Título</th>
-                    <th>Setor</th>
-                    <th>Prioridade</th>
-                    <th>Status</th>
-                    <th>Início</th>
-                    <th>Término</th>
-                    <th>Tempo total</th>
-                    <th>Ação</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php $hasTickets = false; ?>
-                <?php foreach ($tickets as $ticket): ?>
-                    <?php $hasTickets = true; ?>
-                    <?php [$durationMinutes, $flag] = computeTicketDuration($ticket); ?>
-                    <tr class="<?= $flag === 'overdue' ? 'overdue' : '' ?>">
-                        <td><?= (int) $ticket['id'] ?></td>
-                        <td>
-                            <strong><?= Formatter::e($ticket['title']) ?></strong>
+    <div class="monitor-layout">
+        <div class="panel panel-wide">
+            <div class="panel-head">
+                <div>
+                    <h3>Histórico recente</h3>
+                    <p>Chamados organizados por prioridade dentro de cada status.</p>
+                </div>
+                <span class="pill"><?= count($monitorTickets) ?> registros</span>
+            </div>
+
+            <div class="ticket-stream">
+                <?php if (count($monitorTickets) === 0): ?>
+                    <div class="empty-state">Nenhum chamado cadastrado ainda.</div>
+                <?php else: ?>
+                    <?php foreach ($monitorTickets as $ticket): ?>
+                        <?php [$durationMinutes, $flag] = computeTicketDuration($ticket); ?>
+                        <?php $isOverdue = $flag === 'overdue'; ?>
+                        <article class="ticket-card <?= priorityClass($ticket['priority_name']) ?> <?= $isOverdue ? 'ticket-card--overdue' : '' ?>">
+                            <div class="ticket-card__header">
+                                <div class="ticket-card__headline">
+                                    <div class="ticket-card__status-row">
+                                        <span class="pill">#<?= Formatter::e(ticketReference($ticket)) ?></span>
+                                        <span class="pill ticket-status-pill"><?= Formatter::e(ticketStatusLabel($ticket)) ?></span>
+                                        <span class="ticket-card__time">
+                                            <?= Formatter::period($ticket['started_at'] ?? $ticket['created_at'], $ticket['ended_at']) ?>
+                                        </span>
+                                    </div>
+                                    <h4><?= Formatter::e($ticket['title']) ?></h4>
+                                    <p><?= Formatter::e($ticket['sector_name']) ?> · Solicitante: <?= Formatter::e($ticket['requester_name'] ?? 'Não informado') ?></p>
+                                </div>
+
+                                <div class="ticket-card__badge">
+                                    <?= $isOverdue ? 'Pendente em atraso' : ($ticket['started_at'] === null ? 'Aguardando início' : Formatter::durationFromMinutes($durationMinutes)) ?>
+                                </div>
+                            </div>
+
+                            <div class="ticket-card__details">
+                                <div class="ticket-detail">
+                                    <span>Setor</span>
+                                    <strong><?= Formatter::e($ticket['sector_name']) ?></strong>
+                                </div>
+                                <div class="ticket-detail">
+                                    <span>Prioridade</span>
+                                    <strong>
+                                        <span class="priority-pill <?= priorityClass($ticket['priority_name']) ?>">
+                                            <?= Formatter::e($ticket['priority_name']) ?>
+                                        </span>
+                                        · SLA <?= (int) $ticket['estimated_hours'] ?>h
+                                    </strong>
+                                </div>
+                                <div class="ticket-detail">
+                                    <span>Tempo total</span>
+                                    <strong>
+                                        <?= $ticket['started_at'] === null
+                                            ? Formatter::durationFromMinutes($durationMinutes)
+                                            : Formatter::durationFromMinutes($durationMinutes) ?>
+                                    </strong>
+                                </div>
+                            </div>
+
                             <?php if (!empty($ticket['description'])): ?>
-                                <div class="meta"><?= Formatter::e($ticket['description']) ?></div>
+                                <div class="ticket-card__description">
+                                    <span>Descrição</span>
+                                    <p><?= Formatter::e($ticket['description']) ?></p>
+                                </div>
                             <?php endif; ?>
-                        </td>
-                        <td><?= Formatter::e($ticket['sector_name']) ?></td>
-                        <td>
-                            <span class="pill <?= priorityClass($ticket['priority_name']) ?>">
-                                <?= Formatter::e($ticket['priority_name']) ?>
-                            </span>
-                        </td>
-                        <td><span class="pill <?= statusClass($ticket['status']) ?>"><?= Formatter::e($ticket['status']) ?></span></td>
-                        <td><?= Formatter::dateTime($ticket['started_at']) ?></td>
-                        <td><?= Formatter::dateTime($ticket['ended_at']) ?></td>
-                        <td>
-                            <?php if ($ticket['started_at'] === null): ?>
-                                -
-                            <?php elseif ($flag === 'overdue'): ?>
-                                <span class="pill pill-alert">⚠ <?= Formatter::durationFromMinutes($durationMinutes) ?></span>
-                            <?php else: ?>
-                                <?= Formatter::durationFromMinutes($durationMinutes) ?>
+
+                            <?php if ($ticket['status'] === 'Finalizado' && !empty($ticket['solution'])): ?>
+                                <div class="solution-block">
+                                    <div class="solution-card solution-card--solution">
+                                        <div class="solution-card__hero">
+                                            <div>
+                                                <div class="solution-card__label">Fechamento do atendimento</div>
+                                                <div class="solution-card__title">Resumo da resolução</div>
+                                            </div>
+                                            <span class="pill ticket-status-pill">Finalizado</span>
+                                        </div>
+                                        <div class="solution-card__meta">
+                                            <span>Protocolo: #<?= Formatter::e(ticketReference($ticket)) ?></span>
+                                            <span>Setor: <?= Formatter::e($ticket['sector_name']) ?></span>
+                                            <span>Prioridade: <?= Formatter::e($ticket['priority_name']) ?></span>
+                                            <span>Responsável: <?= Formatter::e($ticket['responder_name'] ?? 'Não informado') ?></span>
+                                            <span>Tempo: <?= Formatter::durationFromMinutes($durationMinutes) ?></span>
+                                        </div>
+                                        <?php if (ticketIsOverdue($ticket) && !empty($ticket['delay_reason'])): ?>
+                                            <div class="solution-card__delay">
+                                                <div class="solution-card__label">Motivo do atraso</div>
+                                                <div class="solution-card__body"><?= Formatter::multiline($ticket['delay_reason']) ?></div>
+                                            </div>
+                                        <?php endif; ?>
+                                        <div class="solution-card__body"><?= Formatter::multiline($ticket['solution']) ?></div>
+                                    </div>
+                                </div>
                             <?php endif; ?>
-                        </td>
-                        <td>
-                            <div class="actions-inline">
+
+                            <div class="ticket-card__actions">
                                 <?php if (canStart($ticket)): ?>
                                     <form method="post">
                                         <input type="hidden" name="action" value="start_ticket">
@@ -81,20 +148,38 @@
                                         <button type="submit" class="secondary">Iniciar atendimento</button>
                                     </form>
                                 <?php elseif (canFinish($ticket)): ?>
-                                    <button type="button" class="secondary" data-open-finish data-ticket-id="<?= (int) $ticket['id'] ?>">Finalizar</button>
+                                    <button type="button" class="secondary" data-open-finish data-ticket-id="<?= (int) $ticket['id'] ?>" data-ticket-overdue="<?= $isOverdue ? '1' : '0' ?>">Finalizar</button>
                                 <?php else: ?>
-                                    <span class="pill"><?= Formatter::e(ticketStatusLabel($ticket)) ?></span>
+                                    <span class="pill ticket-status-pill"><?= Formatter::e(ticketStatusLabel($ticket)) ?></span>
                                 <?php endif; ?>
                             </div>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-                <?php if (!$hasTickets): ?>
-                    <tr>
-                        <td colspan="9" class="empty-row">Nenhum chamado cadastrado ainda.</td>
-                    </tr>
+                        </article>
+                    <?php endforeach; ?>
                 <?php endif; ?>
-            </tbody>
-        </table>
+            </div>
+        </div>
+
+        <aside class="panel panel-side">
+            <div class="panel-head">
+                <div>
+                    <h3>Chamados em atraso</h3>
+                    <p>Itens que ultrapassaram o SLA da prioridade.</p>
+                </div>
+                <span class="pill danger"><?= count($overdueTickets) ?></span>
+            </div>
+
+            <div class="list-stack">
+                <?php if (count($overdueTickets) === 0): ?>
+                    <div class="empty-state">Nenhum chamado fora do prazo no momento.</div>
+                <?php else: ?>
+                    <?php foreach (array_slice($overdueTickets, 0, 4) as $ticket): ?>
+                        <div class="list-item alert-item">
+                            <strong><?= Formatter::e($ticket['title']) ?></strong>
+                            <span><?= Formatter::e($ticket['sector_name']) ?> · SLA <?= (int) $ticket['estimated_hours'] ?>h</span>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+        </aside>
     </div>
 </section>

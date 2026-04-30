@@ -19,11 +19,41 @@ final class Formatter
         return $date->format('d/m/Y H:i');
     }
 
+    public static function period(?string $start, ?string $end): string
+    {
+        if ($start === null || $start === '') {
+            return '-';
+        }
+
+        $startDate = new DateTimeImmutable($start);
+        $label = $startDate->format('d/m/Y H:i');
+
+        if ($end === null || $end === '') {
+            return $label . ' - em andamento';
+        }
+
+        $endDate = new DateTimeImmutable($end);
+        return $label . ' → ' . $endDate->format('H:i');
+    }
+
     public static function durationFromMinutes(int $minutes): string
     {
         $hours = intdiv($minutes, 60);
         $restMinutes = $minutes % 60;
 
-        return sprintf('%02dh %02dm', $hours, $restMinutes);
+        if ($hours <= 0) {
+            return sprintf('%dm', $restMinutes);
+        }
+
+        if ($restMinutes <= 0) {
+            return sprintf('%dh', $hours);
+        }
+
+        return sprintf('%dh %dm', $hours, $restMinutes);
+    }
+
+    public static function multiline(?string $value): string
+    {
+        return nl2br(self::e($value));
     }
 }

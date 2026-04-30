@@ -12,6 +12,11 @@
         </div>
 
         <div class="field-group">
+            <div class="field-title"><strong>Quem finalizou</strong></div>
+            <input id="modalResponderName" name="responder_name" value="<?= Formatter::e($currentUserName ?? '') ?>" data-default-value="<?= Formatter::e($currentUserName ?? '') ?>" placeholder="Digite seu nome" required>
+        </div>
+
+        <div class="field-group">
             <div class="field-title"><strong>O que aconteceu</strong></div>
             <textarea id="modalWhatHappened" name="what_happened" required></textarea>
         </div>
@@ -19,6 +24,14 @@
         <div class="field-group">
             <div class="field-title"><strong>Como resolveu</strong></div>
             <textarea id="modalHowSolved" name="how_solved" required></textarea>
+        </div>
+
+        <div class="field-group" data-delay-group hidden>
+            <div class="field-title">
+                <strong>Motivo do atraso</strong>
+                <span class="pill">preencha se houve atraso</span>
+            </div>
+            <textarea id="modalDelayReason" name="delay_reason" placeholder="Explique o que causou o atraso, se aplicável."></textarea>
         </div>
 
         <button type="submit">Concluir atendimento</button>

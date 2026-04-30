@@ -11,47 +11,28 @@ final class PriorityRepository
         $this->pdo = $pdo;
     }
 
-    public function all(): array
+    public function upsert(string $name, int $estimatedHours): int
     {
-        return $this->pdo->query('SELECT id, name, estimated_hours FROM priorities ORDER BY estimated_hours DESC, name')->fetchAll();
-    }
+        $stmt = $this->pdo->prepare('SELECT id FROM priorities WHERE name = :name');
+        $stmt->execute(['name' => $name]);
+        $existing = $stmt->fetchColumn();
 
-    public function create(string $name, int $estimatedHours): void
-    {
+        if ($existing !== false) {
+            $stmt = $this->pdo->prepare('UPDATE priorities SET estimated_hours = :estimated_hours WHERE id = :id');
+            $stmt->execute([
+                'id' => (int) $existing,
+                'estimated_hours' => $estimatedHours,
+            ]);
+
+            return (int) $existing;
+        }
+
         $stmt = $this->pdo->prepare('INSERT INTO priorities (name, estimated_hours) VALUES (:name, :estimated_hours)');
         $stmt->execute([
             'name' => $name,
             'estimated_hours' => $estimatedHours,
         ]);
-    }
 
-    public function existsByName(string $name): bool
-    {
-        $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM priorities WHERE name = :name');
-        $stmt->execute(['name' => $name]);
-
-        return (int) $stmt->fetchColumn() > 0;
-    }
-
-    public function exists(int $id): bool
-    {
-        $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM priorities WHERE id = :id');
-        $stmt->execute(['id' => $id]);
-
-        return (int) $stmt->fetchColumn() > 0;
-    }
-
-    public function countTickets(int $id): int
-    {
-        $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM tickets WHERE priority_id = :id');
-        $stmt->execute(['id' => $id]);
-
-        return (int) $stmt->fetchColumn();
-    }
-
-    public function delete(int $id): void
-    {
-        $stmt = $this->pdo->prepare('DELETE FROM priorities WHERE id = :id');
-        $stmt->execute(['id' => $id]);
+        return (int) $this->pdo->lastInsertId();
     }
 }

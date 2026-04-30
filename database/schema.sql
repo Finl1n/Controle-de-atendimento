@@ -15,13 +15,17 @@ CREATE TABLE IF NOT EXISTS priorities (
 
 CREATE TABLE IF NOT EXISTS tickets (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    protocol_number INTEGER UNIQUE,
     sector_id INTEGER NOT NULL,
     priority_id INTEGER NOT NULL,
+    requester_name TEXT NOT NULL,
     title TEXT NOT NULL,
     description TEXT,
     status TEXT NOT NULL DEFAULT 'Aberto',
     started_at TEXT NULL,
     ended_at TEXT NULL,
+    responder_name TEXT NULL,
+    delay_reason TEXT NULL,
     solution TEXT NULL,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,

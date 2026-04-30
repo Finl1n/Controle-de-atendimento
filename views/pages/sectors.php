@@ -12,7 +12,7 @@
             <input type="hidden" name="action" value="create_sector">
             <div class="field-group">
                 <div class="field-title"><strong>Nome do setor</strong></div>
-                <input id="sector_name" name="name" placeholder="Ex.: TI" required>
+                <input id="sector_name" name="name" placeholder="Digite o nome do setor" required>
             </div>
             <button type="submit">Cadastrar setor</button>
         </form>

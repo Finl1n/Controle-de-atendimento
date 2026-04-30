@@ -28,22 +28,33 @@ SQL;
         return $this->pdo->query($sql)->fetchAll();
     }
 
-    public function create(int $sectorId, int $priorityId, string $title, ?string $description): void
+    public function create(int $sectorId, int $priorityId, string $requesterName, string $title, ?string $description): int
     {
         $now = date('Y-m-d H:i:s');
         $stmt = $this->pdo->prepare(
-            'INSERT INTO tickets (sector_id, priority_id, title, description, status, created_at, updated_at) VALUES (:sector_id, :priority_id, :title, :description, :status, :created_at, :updated_at)'
+            'INSERT INTO tickets (sector_id, priority_id, requester_name, title, description, status, created_at, updated_at) VALUES (:sector_id, :priority_id, :requester_name, :title, :description, :status, :created_at, :updated_at)'
         );
 
         $stmt->execute([
             'sector_id' => $sectorId,
             'priority_id' => $priorityId,
+            'requester_name' => $requesterName,
             'title' => $title,
             'description' => $description,
             'status' => 'Aberto',
             'created_at' => $now,
             'updated_at' => $now,
         ]);
+
+        $id = (int) $this->pdo->lastInsertId();
+        $protocolNumber = $id;
+        $update = $this->pdo->prepare('UPDATE tickets SET protocol_number = :protocol_number WHERE id = :id');
+        $update->execute([
+            'protocol_number' => $protocolNumber,
+            'id' => $id,
+        ]);
+
+        return $id;
     }
 
     public function find(int $id): ?array
@@ -68,14 +79,16 @@ SQL;
         ]);
     }
 
-    public function finish(int $id, string $solution): void
+    public function finish(int $id, string $responderName, ?string $delayReason, string $solution): void
     {
         $now = date('Y-m-d H:i:s');
         $stmt = $this->pdo->prepare(
-            "UPDATE tickets SET status = 'Finalizado', ended_at = :ended_at, solution = :solution, updated_at = :updated_at WHERE id = :id"
+            "UPDATE tickets SET status = 'Finalizado', ended_at = :ended_at, responder_name = :responder_name, delay_reason = :delay_reason, solution = :solution, updated_at = :updated_at WHERE id = :id"
         );
         $stmt->execute([
             'id' => $id,
+            'responder_name' => $responderName,
+            'delay_reason' => $delayReason,
             'solution' => $solution,
             'ended_at' => $now,
             'updated_at' => $now,

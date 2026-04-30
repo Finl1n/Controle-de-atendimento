@@ -4,8 +4,11 @@
     const stepButtons = document.querySelectorAll('[data-stepper]');
     const modal = document.getElementById('finishModal');
     const modalTicketId = document.getElementById('modalTicketId');
+    const modalResponderName = document.getElementById('modalResponderName');
     const modalWhatHappened = document.getElementById('modalWhatHappened');
     const modalHowSolved = document.getElementById('modalHowSolved');
+    const modalDelayReason = document.getElementById('modalDelayReason');
+    const modalDelayGroup = document.querySelector('[data-delay-group]');
     const openFinishButtons = document.querySelectorAll('[data-open-finish]');
     const closeModalButton = document.querySelector('[data-close-modal]');
 
@@ -18,6 +21,7 @@
     if (select && hoursInput) {
         select.addEventListener('change', function () {
             const preset = presets[this.value];
+
             if (preset) {
                 hoursInput.value = preset;
             }
@@ -34,12 +38,23 @@
         });
     }
 
-    if (modal && modalTicketId && modalWhatHappened && modalHowSolved) {
+    if (modal && modalTicketId && modalResponderName && modalWhatHappened && modalHowSolved && modalDelayReason && modalDelayGroup) {
+        const defaultResponderName = modalResponderName.dataset.defaultValue || '';
+
         openFinishButtons.forEach(function (button) {
             button.addEventListener('click', function () {
                 modalTicketId.value = this.dataset.ticketId || '';
+                const overdue = this.dataset.ticketOverdue === '1';
+
+                modalResponderName.value = defaultResponderName;
                 modalWhatHappened.value = '';
                 modalHowSolved.value = '';
+                modalDelayReason.value = '';
+                modalDelayReason.required = overdue;
+                modalDelayGroup.hidden = !overdue;
+                modalDelayGroup.style.display = overdue ? '' : 'none';
+                modalDelayGroup.classList.toggle('field-group--required', overdue);
+
                 modal.showModal();
                 modalWhatHappened.focus();
             });
@@ -48,6 +63,8 @@
 
     if (modal && closeModalButton) {
         closeModalButton.addEventListener('click', function () {
+            modalDelayGroup.hidden = true;
+            modalDelayGroup.style.display = 'none';
             modal.close();
         });
 
@@ -61,6 +78,8 @@
             );
 
             if (clickedOutside) {
+                modalDelayGroup.hidden = true;
+                modalDelayGroup.style.display = 'none';
                 modal.close();
             }
         });
