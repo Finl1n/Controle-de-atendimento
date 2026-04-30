@@ -1,5 +1,4 @@
 <?php
-/** @var string $page */
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -10,25 +9,22 @@
     <link rel="stylesheet" href="/assets/css/app.css">
 </head>
 <body>
-    <?php if ($page === 'role'): ?>
-        <?php require __DIR__ . '/pages/role.php'; ?>
-    <?php else: ?>
-        <div class="app-shell">
-            <?php require __DIR__ . '/partials/sidebar.php'; ?>
+    <div class="app-shell">
+        <?php require __DIR__ . '/partials/sidebar.php'; ?>
 
-            <main class="workspace">
-                <?php require __DIR__ . '/partials/topbar.php'; ?>
+        <main class="workspace">
+            <?php require __DIR__ . '/partials/topbar.php'; ?>
 
-                <?php if ($flash !== null): ?>
-                    <?php require __DIR__ . '/partials/flash.php'; ?>
-                <?php endif; ?>
+            <?php if ($flash !== null): ?>
+                <?php require __DIR__ . '/partials/flash.php'; ?>
+            <?php endif; ?>
 
-                <?php require __DIR__ . '/pages/' . $page . '.php'; ?>
-            </main>
-        </div>
+            <?php require __DIR__ . '/pages/' . $page . '.php'; ?>
+        </main>
+    </div>
 
-        <?php require __DIR__ . '/partials/finish-modal.php'; ?>
-    <?php endif; ?>
+    <?php require __DIR__ . '/partials/finish-modal.php'; ?>
+    <?php require __DIR__ . '/partials/cancel-modal.php'; ?>
 
     <script src="/assets/js/app.js"></script>
 </body>

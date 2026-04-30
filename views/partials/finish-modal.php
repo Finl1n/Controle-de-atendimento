@@ -1,4 +1,4 @@
-<dialog class="modal" id="finishModal">
+<div class="modal" id="finishModal" hidden role="dialog" aria-modal="true" aria-labelledby="finishModalTitle">
     <form method="post" class="modal-card">
         <input type="hidden" name="action" value="finish_ticket">
         <input type="hidden" name="ticket_id" id="modalTicketId">
@@ -6,14 +6,14 @@
         <div class="modal-head">
             <div>
                 <p class="eyebrow">Encerramento do atendimento</p>
-                <h3>Registrar o check-out</h3>
+                <h3 id="finishModalTitle">Registrar o check-out</h3>
             </div>
             <button type="button" class="modal-close" data-close-modal>&times;</button>
         </div>
 
         <div class="field-group">
             <div class="field-title"><strong>Quem finalizou</strong></div>
-            <input id="modalResponderName" name="responder_name" value="<?= Formatter::e($currentUserName ?? '') ?>" data-default-value="<?= Formatter::e($currentUserName ?? '') ?>" placeholder="Digite seu nome" required>
+            <input id="modalResponderName" name="responder_name" placeholder="Ex.: Ana Souza" required>
         </div>
 
         <div class="field-group">
@@ -36,4 +36,4 @@
 
         <button type="submit">Concluir atendimento</button>
     </form>
-</dialog>
+</div>

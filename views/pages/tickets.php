@@ -2,7 +2,7 @@
     <div class="section-title">
         <div>
             <h2>Abrir Chamado</h2>
-            <p>Crie o chamado com setor, prioridade e tempo estimado em uma única etapa.</p>
+            <p>Cadastre o setor, o nível de prioridade e o tempo estimado do atendimento em uma única etapa.</p>
         </div>
         <div class="pill"><?= count($tickets) ?> itens</div>
     </div>
@@ -10,11 +10,10 @@
     <div class="section-grid">
         <form class="panel" method="post">
             <input type="hidden" name="action" value="create_ticket">
-            <input type="hidden" name="requester_name" value="<?= Formatter::e($currentUserName ?? '') ?>">
 
-            <div class="field-group field-group--summary">
+            <div class="field-group">
                 <div class="field-title"><strong>Solicitante</strong></div>
-                <div class="summary-chip"><?= Formatter::e($currentUserName ?? 'Não informado') ?></div>
+                <input id="requester_name" name="requester_name" placeholder="Ex.: Gustavo Martins" required>
             </div>
 
             <div class="field-group">
@@ -51,7 +50,7 @@
 
             <div class="field-group">
                 <div class="field-title"><strong>Título</strong></div>
-                <input id="ticket_title" name="title" placeholder="Digite um título objetivo" required>
+                <input id="ticket_title" name="title" placeholder="Ex.: Email corporativo indisponível" required>
             </div>
 
             <div class="field-group">
@@ -61,6 +60,5 @@
 
             <button type="submit">Criar chamado</button>
         </form>
-
     </div>
 </section>

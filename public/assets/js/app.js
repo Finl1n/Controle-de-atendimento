@@ -1,37 +1,23 @@
 (function () {
-    const select = document.querySelector('[data-priority-select]');
+    const prioritySelect = document.querySelector('[data-priority-select]');
     const hoursInput = document.getElementById('estimated_hours');
     const stepButtons = document.querySelectorAll('[data-stepper]');
-    const modal = document.getElementById('finishModal');
-    const modalTicketId = document.getElementById('modalTicketId');
-    const modalResponderName = document.getElementById('modalResponderName');
-    const modalWhatHappened = document.getElementById('modalWhatHappened');
-    const modalHowSolved = document.getElementById('modalHowSolved');
-    const modalDelayReason = document.getElementById('modalDelayReason');
-    const modalDelayGroup = document.querySelector('[data-delay-group]');
+
+    const finishModal = document.getElementById('finishModal');
+    const finishModalTicketId = document.getElementById('modalTicketId');
+    const finishModalResponderName = document.getElementById('modalResponderName');
+    const finishModalWhatHappened = document.getElementById('modalWhatHappened');
+    const finishModalHowSolved = document.getElementById('modalHowSolved');
+    const finishModalDelayReason = document.getElementById('modalDelayReason');
+    const finishModalDelayGroup = document.querySelector('[data-delay-group]');
+
+    const cancelModal = document.getElementById('cancelModal');
+    const cancelModalTicketId = document.getElementById('cancelModalTicketId');
+    const cancelModalCanceledBy = document.getElementById('cancelModalCanceledBy');
+    const cancelModalReason = document.getElementById('cancelModalReason');
+
     const openFinishButtons = document.querySelectorAll('[data-open-finish]');
-    const closeModalButton = document.querySelector('[data-close-modal]');
-
-    function parseTicketDateTime(value) {
-        if (!value) {
-            return null;
-        }
-
-        const parsed = new Date(String(value).replace(' ', 'T'));
-
-        return Number.isNaN(parsed.getTime()) ? null : parsed;
-    }
-
-    function isTicketOverdue(createdAt, estimatedHours) {
-        const referenceDate = parseTicketDateTime(createdAt);
-        const hours = Number(estimatedHours || 0);
-
-        if (!referenceDate || !Number.isFinite(hours) || hours <= 0) {
-            return false;
-        }
-
-        return Date.now() - referenceDate.getTime() > hours * 60 * 60 * 1000;
-    }
+    const openCancelButtons = document.querySelectorAll('[data-open-cancel]');
 
     const presets = {
         Baixa: 72,
@@ -39,10 +25,9 @@
         Alta: 8,
     };
 
-    if (select && hoursInput) {
-        select.addEventListener('change', function () {
+    if (prioritySelect && hoursInput) {
+        prioritySelect.addEventListener('change', function () {
             const preset = presets[this.value];
-
             if (preset) {
                 hoursInput.value = preset;
             }
@@ -54,58 +39,66 @@
             button.addEventListener('click', function () {
                 const current = parseInt(hoursInput.value || '1', 10);
                 const next = this.dataset.stepper === 'up' ? current + 1 : Math.max(1, current - 1);
-                hoursInput.value = next;
+                hoursInput.value = String(next);
             });
         });
     }
 
-    if (modal && modalTicketId && modalResponderName && modalWhatHappened && modalHowSolved && modalDelayReason && modalDelayGroup) {
-        const defaultResponderName = modalResponderName.dataset.defaultValue || '';
+    function bindModal(modal, buttons, onOpen) {
+        if (!modal || buttons.length === 0) {
+            return;
+        }
 
-        openFinishButtons.forEach(function (button) {
+        buttons.forEach(function (button) {
             button.addEventListener('click', function () {
-                modalTicketId.value = this.dataset.ticketId || '';
-                const overdue = isTicketOverdue(
-                    this.dataset.ticketCreatedAt,
-                    this.dataset.ticketEstimatedHours
-                );
-
-                modalResponderName.value = defaultResponderName;
-                modalWhatHappened.value = '';
-                modalHowSolved.value = '';
-                modalDelayReason.value = '';
-                modalDelayReason.required = overdue;
-                modalDelayGroup.hidden = !overdue;
-                modalDelayGroup.style.display = overdue ? '' : 'none';
-                modalDelayGroup.classList.toggle('field-group--required', overdue);
-
-                modal.showModal();
-                modalWhatHappened.focus();
+                onOpen(button, modal);
             });
         });
-    }
 
-    if (modal && closeModalButton) {
-        closeModalButton.addEventListener('click', function () {
-            modalDelayGroup.hidden = true;
-            modalDelayGroup.style.display = 'none';
-            modal.close();
-        });
+        const closeButton = modal.querySelector('[data-close-modal]');
+        if (closeButton) {
+            closeButton.addEventListener('click', function () {
+                modal.hidden = true;
+            });
+        }
 
         modal.addEventListener('click', function (event) {
-            const rect = modal.getBoundingClientRect();
-            const clickedOutside = (
-                event.clientX < rect.left ||
-                event.clientX > rect.right ||
-                event.clientY < rect.top ||
-                event.clientY > rect.bottom
-            );
-
-            if (clickedOutside) {
-                modalDelayGroup.hidden = true;
-                modalDelayGroup.style.display = 'none';
-                modal.close();
+            if (event.target === modal) {
+                modal.hidden = true;
             }
         });
     }
+
+    bindModal(finishModal, openFinishButtons, function (button, modal) {
+        if (!finishModalTicketId || !finishModalResponderName || !finishModalWhatHappened || !finishModalHowSolved || !finishModalDelayReason || !finishModalDelayGroup) {
+            return;
+        }
+
+        finishModalTicketId.value = button.dataset.ticketId || '';
+        const overdue = button.dataset.ticketOverdue === '1';
+
+        finishModalResponderName.value = '';
+        finishModalWhatHappened.value = '';
+        finishModalHowSolved.value = '';
+        finishModalDelayReason.value = '';
+        finishModalDelayReason.required = overdue;
+        finishModalDelayGroup.hidden = !overdue;
+        finishModalDelayGroup.classList.toggle('field-group--required', overdue);
+
+        modal.hidden = false;
+        finishModalWhatHappened.focus();
+    });
+
+    bindModal(cancelModal, openCancelButtons, function (button, modal) {
+        if (!cancelModalTicketId || !cancelModalCanceledBy || !cancelModalReason) {
+            return;
+        }
+
+        cancelModalTicketId.value = button.dataset.ticketId || '';
+        cancelModalCanceledBy.value = '';
+        cancelModalReason.value = '';
+
+        modal.hidden = false;
+        cancelModalCanceledBy.focus();
+    });
 })();

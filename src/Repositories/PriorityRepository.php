@@ -11,7 +11,7 @@ final class PriorityRepository
         $this->pdo = $pdo;
     }
 
-    public function findOrCreate(string $name, int $defaultEstimatedHours = 1): int
+    public function upsert(string $name, int $estimatedHours): int
     {
         $stmt = $this->pdo->prepare('SELECT id FROM priorities WHERE name = :name');
         $stmt->execute(['name' => $name]);
@@ -24,7 +24,7 @@ final class PriorityRepository
         $stmt = $this->pdo->prepare('INSERT INTO priorities (name, estimated_hours) VALUES (:name, :estimated_hours)');
         $stmt->execute([
             'name' => $name,
-            'estimated_hours' => $defaultEstimatedHours,
+            'estimated_hours' => $estimatedHours,
         ]);
 
         return (int) $this->pdo->lastInsertId();

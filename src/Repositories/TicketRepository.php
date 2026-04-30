@@ -17,7 +17,8 @@ final class TicketRepository
 SELECT
     t.*,
     s.name AS sector_name,
-    p.name AS priority_name
+    p.name AS priority_name,
+    COALESCE(t.estimated_hours, p.estimated_hours) AS estimated_hours
 FROM tickets t
 INNER JOIN sectors s ON s.id = t.sector_id
 INNER JOIN priorities p ON p.id = t.priority_id
@@ -91,6 +92,21 @@ SQL;
             'delay_reason' => $delayReason,
             'solution' => $solution,
             'ended_at' => $now,
+            'updated_at' => $now,
+        ]);
+    }
+
+    public function cancel(int $id, string $canceledBy, string $cancelReason): void
+    {
+        $now = date('Y-m-d H:i:s');
+        $stmt = $this->pdo->prepare(
+            "UPDATE tickets SET status = 'Cancelado', canceled_at = :canceled_at, canceled_by = :canceled_by, cancel_reason = :cancel_reason, updated_at = :updated_at WHERE id = :id"
+        );
+        $stmt->execute([
+            'id' => $id,
+            'canceled_by' => $canceledBy,
+            'cancel_reason' => $cancelReason,
+            'canceled_at' => $now,
             'updated_at' => $now,
         ]);
     }

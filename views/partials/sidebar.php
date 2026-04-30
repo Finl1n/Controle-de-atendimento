@@ -7,11 +7,6 @@
         </div>
     </div>
 
-    <div class="sidebar-role">
-        <span><?= Formatter::e(roleLabel($currentRole ?? null)) ?></span>
-        <strong><?= Formatter::e($currentUserName ?? '') ?></strong>
-    </div>
-
     <nav class="sidebar-nav" aria-label="Navegação principal">
         <?php foreach ($navItems as $item): ?>
             <a class="sidebar-link <?= $page === $item['page'] ? 'active' : '' ?>" href="?page=<?= Formatter::e($item['page']) ?>">
@@ -30,9 +25,5 @@
             <span>Fluxo ativo</span>
             <strong><?= count($tickets) ?> chamados</strong>
         </div>
-        <form method="post">
-            <input type="hidden" name="action" value="reset_role">
-            <button type="submit" class="secondary">Trocar perfil</button>
-        </form>
     </div>
 </aside>

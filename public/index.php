@@ -22,9 +22,6 @@ $ticketRepository = new TicketRepository($pdo);
 ensureSchema($pdo);
 ensureTicketColumns($pdo);
 
-$currentRole = $_SESSION['app_role'] ?? null;
-$currentUserName = trim((string) ($_SESSION['user_name'] ?? ''));
-
 $page = $_GET['page'] ?? 'dashboard';
 if (!in_array($page, ['dashboard', 'sectors', 'tickets', 'monitor'], true)) {
     $page = 'dashboard';
@@ -40,21 +37,8 @@ try {
 
 $flash = Flash::get();
 $sectors = $sectorRepository->all();
-$allTickets = $ticketRepository->allWithRelations();
-$tickets = sortTicketsForMonitor(filterTicketsForRole($allTickets, $currentRole, $currentUserName));
+$tickets = $ticketRepository->allWithRelations();
 $summary = summarizeTickets($tickets);
-
-if ($currentRole === null) {
-    $page = 'role';
-} else {
-    $allowedPages = $currentRole === 'solicitante'
-        ? ['dashboard', 'sectors', 'tickets']
-        : ['dashboard', 'monitor'];
-
-    if (!in_array($page, $allowedPages, true)) {
-        $page = $allowedPages[0];
-    }
-}
 
 function ensureSchema(PDO $pdo): void
 {
@@ -78,6 +62,9 @@ function ensureTicketColumns(PDO $pdo): void
         'responder_name' => 'ALTER TABLE tickets ADD COLUMN responder_name TEXT NULL',
         'delay_reason' => 'ALTER TABLE tickets ADD COLUMN delay_reason TEXT NULL',
         'estimated_hours' => 'ALTER TABLE tickets ADD COLUMN estimated_hours INTEGER NULL',
+        'canceled_at' => 'ALTER TABLE tickets ADD COLUMN canceled_at TEXT NULL',
+        'canceled_by' => 'ALTER TABLE tickets ADD COLUMN canceled_by TEXT NULL',
+        'cancel_reason' => 'ALTER TABLE tickets ADD COLUMN cancel_reason TEXT NULL',
     ];
 
     foreach ($required as $column => $sql) {
@@ -90,12 +77,15 @@ function ensureTicketColumns(PDO $pdo): void
     $pdo->exec("UPDATE tickets SET requester_name = 'Solicitante não informado' WHERE requester_name IS NULL OR requester_name = ''");
     $pdo->exec('
         UPDATE tickets
-        SET estimated_hours = (
-            SELECT priorities.estimated_hours
-            FROM priorities
-            WHERE priorities.id = tickets.priority_id
+        SET estimated_hours = COALESCE(
+            estimated_hours,
+            (
+                SELECT priorities.estimated_hours
+                FROM priorities
+                WHERE priorities.id = tickets.priority_id
+            ),
+            1
         )
-        WHERE estimated_hours IS NULL
     ');
     $pdo->exec('UPDATE tickets SET estimated_hours = 1 WHERE estimated_hours IS NULL OR estimated_hours <= 0');
 }
@@ -107,30 +97,7 @@ function handleAction(?string $action, SectorRepository $sectorRepository, Prior
     }
 
     switch ($action) {
-        case 'select_role':
-            $role = trim((string) ($_POST['role'] ?? ''));
-            $name = trim((string) ($_POST['name'] ?? ''));
-
-            if (!in_array($role, ['solicitante', 'responsavel'], true)) {
-                throw new RuntimeException('Selecione um perfil válido.');
-            }
-
-            if ($name === '') {
-                throw new RuntimeException('Informe seu nome para continuar.');
-            }
-
-            $_SESSION['app_role'] = $role;
-            $_SESSION['user_name'] = $name;
-            header('Location: ?page=dashboard');
-            exit;
-
-        case 'reset_role':
-            unset($_SESSION['app_role'], $_SESSION['user_name']);
-            header('Location: ?page=role');
-            exit;
-
         case 'create_sector':
-            requireRole('solicitante');
             $name = trim((string) ($_POST['name'] ?? ''));
             if ($name === '') {
                 throw new RuntimeException('Informe o nome do setor.');
@@ -145,7 +112,6 @@ function handleAction(?string $action, SectorRepository $sectorRepository, Prior
             break;
 
         case 'delete_sector':
-            requireRole('solicitante');
             $sectorId = requireInt('sector_id', 'Setor inválido.');
             if ($sectorRepository->countTickets($sectorId) > 0) {
                 throw new RuntimeException('Não é possível excluir um setor que já possui chamados.');
@@ -156,11 +122,10 @@ function handleAction(?string $action, SectorRepository $sectorRepository, Prior
             break;
 
         case 'create_ticket':
-            requireRole('solicitante');
             $sectorId = filter_var($_POST['sector_id'] ?? null, FILTER_VALIDATE_INT);
             $priorityName = trim((string) ($_POST['priority_name'] ?? ''));
             $estimatedHours = filter_var($_POST['estimated_hours'] ?? null, FILTER_VALIDATE_INT);
-            $requesterName = trim((string) ($_SESSION['user_name'] ?? ''));
+            $requesterName = trim((string) ($_POST['requester_name'] ?? ''));
             $title = trim((string) ($_POST['title'] ?? ''));
             $description = trim((string) ($_POST['description'] ?? ''));
 
@@ -188,13 +153,12 @@ function handleAction(?string $action, SectorRepository $sectorRepository, Prior
                 throw new RuntimeException('Informe o título do chamado.');
             }
 
-            $priorityId = $priorityRepository->findOrCreate($priorityName, (int) $estimatedHours);
+            $priorityId = $priorityRepository->upsert($priorityName, (int) $estimatedHours);
             $ticketId = $ticketRepository->create((int) $sectorId, $priorityId, (int) $estimatedHours, $requesterName, $title, $description !== '' ? $description : null);
             Flash::set('success', 'Chamado #' . ticketReference(['id' => $ticketId, 'protocol_number' => $ticketId]) . ' criado com status Aberto.');
             break;
 
         case 'start_ticket':
-            requireRole('responsavel');
             $ticket = requireTicket($ticketRepository);
             if ($ticket['status'] !== 'Aberto') {
                 throw new RuntimeException('Só é possível iniciar um chamado em aberto.');
@@ -205,13 +169,12 @@ function handleAction(?string $action, SectorRepository $sectorRepository, Prior
             break;
 
         case 'finish_ticket':
-            requireRole('responsavel');
             $ticket = requireTicket($ticketRepository);
             if ($ticket['status'] !== 'Em Atendimento' || empty($ticket['started_at'])) {
                 throw new RuntimeException('Só é possível finalizar um chamado em atendimento.');
             }
 
-            $responderName = trim((string) ($_POST['responder_name'] ?? ($_SESSION['user_name'] ?? '')));
+            $responderName = trim((string) ($_POST['responder_name'] ?? ''));
             $whatHappened = trim((string) ($_POST['what_happened'] ?? ''));
             $howSolved = trim((string) ($_POST['how_solved'] ?? ''));
             $delayReason = trim((string) ($_POST['delay_reason'] ?? ''));
@@ -224,21 +187,38 @@ function handleAction(?string $action, SectorRepository $sectorRepository, Prior
                 throw new RuntimeException('Descreva o ocorrido e a solução aplicada.');
             }
 
-            $isOverdue = ticketIsOverdue($ticket);
-
-            if ($isOverdue && $delayReason === '') {
+            if (ticketIsOverdue($ticket) && $delayReason === '') {
                 throw new RuntimeException('Informe o motivo do atraso para este chamado.');
             }
 
             $solution = "O que aconteceu: {$whatHappened}\nComo resolveu: {$howSolved}";
-            $storedDelayReason = $isOverdue && $delayReason !== '' ? $delayReason : null;
-
-            if ($storedDelayReason !== null) {
+            if ($delayReason !== '') {
                 $solution = "Motivo do atraso: {$delayReason}\n\n" . $solution;
             }
 
-            $ticketRepository->finish((int) $ticket['id'], $responderName, $storedDelayReason, $solution);
+            $ticketRepository->finish((int) $ticket['id'], $responderName, $delayReason !== '' ? $delayReason : null, $solution);
             Flash::set('success', 'Check-out realizado com sucesso.');
+            break;
+
+        case 'cancel_ticket':
+            $ticket = requireTicket($ticketRepository);
+            if (!in_array($ticket['status'], ['Aberto', 'Em Atendimento'], true)) {
+                throw new RuntimeException('Só é possível cancelar chamados em aberto ou em atendimento.');
+            }
+
+            $canceledBy = trim((string) ($_POST['canceled_by'] ?? ''));
+            $cancelReason = trim((string) ($_POST['cancel_reason'] ?? ''));
+
+            if ($canceledBy === '') {
+                throw new RuntimeException('Informe o nome de quem cancelou o chamado.');
+            }
+
+            if ($cancelReason === '') {
+                throw new RuntimeException('Informe o motivo do cancelamento.');
+            }
+
+            $ticketRepository->cancel((int) $ticket['id'], $canceledBy, $cancelReason);
+            Flash::set('success', 'Cancelamento registrado com sucesso.');
             break;
 
         default:
@@ -257,14 +237,6 @@ function requireTicket(TicketRepository $ticketRepository): array
     return $ticket;
 }
 
-function requireRole(string $requiredRole): void
-{
-    $currentRole = $_SESSION['app_role'] ?? null;
-    if ($currentRole !== $requiredRole) {
-        throw new RuntimeException('Seu perfil atual não permite esta ação.');
-    }
-}
-
 function requireInt(string $key, string $message): int
 {
     $value = filter_var($_POST[$key] ?? null, FILTER_VALIDATE_INT);
@@ -278,18 +250,23 @@ function requireInt(string $key, string $message): int
 function computeTicketDuration(array $ticket): array
 {
     $tz = new DateTimeZone('America/Sao_Paulo');
-    $referenceStart = $ticket['created_at'] ?? null;
+    $referenceStart = !empty($ticket['started_at'])
+        ? $ticket['started_at']
+        : ($ticket['created_at'] ?? null);
 
     if ($referenceStart === null || $referenceStart === '') {
         return [0, null];
     }
 
     $start = new DateTimeImmutable($referenceStart, $tz);
-    $end = !empty($ticket['ended_at'])
-        ? new DateTimeImmutable($ticket['ended_at'], $tz)
+    $endReference = !empty($ticket['ended_at'])
+        ? $ticket['ended_at']
+        : (!empty($ticket['canceled_at']) ? $ticket['canceled_at'] : null);
+    $end = $endReference !== null
+        ? new DateTimeImmutable($endReference, $tz)
         : new DateTimeImmutable('now', $tz);
     $minutes = max(0, (int) floor(($end->getTimestamp() - $start->getTimestamp()) / 60));
-    $estimatedMinutes = ((int) ($ticket['estimated_hours'] ?? 0)) * 60;
+    $estimatedMinutes = ((int) $ticket['estimated_hours']) * 60;
 
     return [$minutes, $minutes > $estimatedMinutes ? 'overdue' : null];
 }
@@ -301,6 +278,7 @@ function summarizeTickets(array $tickets): array
         'aberto' => 0,
         'em_atendimento' => 0,
         'finalizado' => 0,
+        'cancelado' => 0,
     ];
 
     foreach ($tickets as $ticket) {
@@ -314,6 +292,9 @@ function summarizeTickets(array $tickets): array
             case 'Finalizado':
                 $summary['finalizado']++;
                 break;
+            case 'Cancelado':
+                $summary['cancelado']++;
+                break;
         }
     }
 
@@ -326,6 +307,7 @@ function statusClass(string $status): string
         'Aberto' => 'status-open',
         'Em Atendimento' => 'status-progress',
         'Finalizado' => 'status-finished',
+        'Cancelado' => 'status-canceled',
         default => '',
     };
 }
@@ -340,25 +322,13 @@ function priorityClass(string $priorityName): string
     };
 }
 
-function roleLabel(?string $role): string
-{
-    return match ($role) {
-        'solicitante' => 'Solicitante',
-        'responsavel' => 'Responsável',
-        default => 'Perfil não selecionado',
-    };
-}
-
-function pageTitle(string $page, ?string $role = null): array
+function pageTitle(string $page): array
 {
     return match ($page) {
-        'role' => ['title' => 'Escolha seu perfil', 'description' => 'Defina como deseja usar o sistema.'],
         'sectors' => ['title' => 'Setores', 'description' => 'Cadastre as áreas responsáveis pelos chamados.'],
         'tickets' => ['title' => 'Abrir Chamado', 'description' => 'Crie novos chamados de forma organizada.'],
         'monitor' => ['title' => 'Acompanhamento', 'description' => 'Visualize o fluxo de abertura, atendimento e encerramento.'],
-        default => $role === 'solicitante'
-            ? ['title' => 'Meus chamados', 'description' => 'Acompanhe os chamados solicitados por você.']
-            : ['title' => 'Dashboard', 'description' => 'Resumo geral do atendimento e histórico operacional.'],
+        default => ['title' => 'Dashboard', 'description' => 'Resumo geral do atendimento e histórico operacional.'],
     };
 }
 
@@ -372,6 +342,11 @@ function canFinish(array $ticket): bool
     return $ticket['status'] === 'Em Atendimento' && !empty($ticket['started_at']) && $ticket['ended_at'] === null;
 }
 
+function canCancel(array $ticket): bool
+{
+    return in_array($ticket['status'], ['Aberto', 'Em Atendimento'], true);
+}
+
 function ticketStatusLabel(array $ticket): string
 {
     if (ticketIsOverdue($ticket)) {
@@ -382,12 +357,17 @@ function ticketStatusLabel(array $ticket): string
         'Aberto' => 'Aguardando início',
         'Em Atendimento' => 'Em atendimento',
         'Finalizado' => 'Concluído',
+        'Cancelado' => 'Cancelado',
         default => 'Atual',
     };
 }
 
 function ticketIsOverdue(array $ticket): bool
 {
+    if (!in_array($ticket['status'], ['Aberto', 'Em Atendimento'], true)) {
+        return false;
+    }
+
     [, $flag] = computeTicketDuration($ticket);
     return $flag === 'overdue';
 }
@@ -402,105 +382,23 @@ function ticketReference(array $ticket): string
     return str_pad((string) (int) $number, 6, '0', STR_PAD_LEFT);
 }
 
-function filterTicketsForRole(array $tickets, ?string $role, string $userName): array
-{
-    if ($role !== 'solicitante' || $userName === '') {
-        return $tickets;
-    }
-
-    return array_values(array_filter($tickets, static function (array $ticket) use ($userName): bool {
-        return trim((string) ($ticket['requester_name'] ?? '')) === $userName;
-    }));
-}
-
-function ticketPriorityRank(string $priorityName): int
-{
-    return match ($priorityName) {
-        'Alta' => 0,
-        'Média' => 1,
-        'Baixa' => 2,
-        default => 3,
-    };
-}
-
-function ticketStatusRank(string $status): int
-{
-    return match ($status) {
-        'Aberto' => 0,
-        'Em Atendimento' => 1,
-        'Finalizado' => 2,
-        default => 3,
-    };
-}
-
-function sortTicketsForMonitor(array $tickets): array
-{
-    usort($tickets, static function (array $left, array $right): int {
-        $leftStatus = ticketStatusRank((string) ($left['status'] ?? ''));
-        $rightStatus = ticketStatusRank((string) ($right['status'] ?? ''));
-
-        if ($leftStatus !== $rightStatus) {
-            return $leftStatus <=> $rightStatus;
-        }
-
-        $leftPriority = ticketPriorityRank((string) ($left['priority_name'] ?? ''));
-        $rightPriority = ticketPriorityRank((string) ($right['priority_name'] ?? ''));
-
-        if ($leftPriority !== $rightPriority) {
-            return $leftPriority <=> $rightPriority;
-        }
-
-        return strcmp((string) ($right['created_at'] ?? ''), (string) ($left['created_at'] ?? ''));
-    });
-
-    return $tickets;
-}
-
-function filterTicketsByStatus(array $tickets, string $statusFilter): array
-{
-    if ($statusFilter === 'all') {
-        return $tickets;
-    }
-
-    $status = match ($statusFilter) {
-        'open' => 'Aberto',
-        'progress' => 'Em Atendimento',
-        'finished' => 'Finalizado',
-        default => null,
-    };
-
-    if ($status === null) {
-        return $tickets;
-    }
-
-    return array_values(array_filter($tickets, static fn (array $ticket): bool => ($ticket['status'] ?? '') === $status));
-}
-
-$meta = pageTitle($page, $currentRole);
+$meta = pageTitle($page);
 $summaryCards = [
     ['label' => 'Total de chamados', 'value' => $summary['total'], 'tone' => 'neutral'],
     ['label' => 'Abertos', 'value' => $summary['aberto'], 'tone' => 'blue'],
     ['label' => 'Em atendimento', 'value' => $summary['em_atendimento'], 'tone' => 'amber'],
     ['label' => 'Finalizados', 'value' => $summary['finalizado'], 'tone' => 'green'],
+    ['label' => 'Cancelados', 'value' => $summary['cancelado'], 'tone' => 'rose'],
 ];
 $recentTickets = array_slice($tickets, 0, 6);
-$closedTickets = array_values(array_filter($tickets, static fn (array $ticket): bool => $ticket['status'] === 'Finalizado'));
+$closedTickets = array_values(array_filter($tickets, static fn (array $ticket): bool => in_array($ticket['status'], ['Finalizado', 'Cancelado'], true)));
 $recentClosedTickets = array_slice($closedTickets, 0, 4);
-$overdueTickets = array_values(array_filter($tickets, static fn (array $ticket): bool => ticketIsOverdue($ticket)));
-$monitorStatusFilter = $_GET['status'] ?? 'all';
-if (!in_array($monitorStatusFilter, ['all', 'open', 'progress', 'finished'], true)) {
-    $monitorStatusFilter = 'all';
-}
-$monitorTickets = sortTicketsForMonitor(filterTicketsByStatus($tickets, $monitorStatusFilter));
-$navItems = $currentRole === 'solicitante'
-    ? [
-        ['label' => 'Dashboard', 'page' => 'dashboard', 'description' => 'Seus chamados'],
-        ['label' => 'Setores', 'page' => 'sectors', 'description' => 'Cadastro de áreas'],
-        ['label' => 'Abrir Chamado', 'page' => 'tickets', 'description' => 'Novo atendimento'],
-    ]
-    : [
-        ['label' => 'Dashboard', 'page' => 'dashboard', 'description' => 'Resumo da operação'],
-        ['label' => 'Acompanhamento', 'page' => 'monitor', 'description' => 'Check-in e check-out'],
-    ];
+$overdueTickets = array_values(array_filter($tickets, static fn (array $ticket): bool => ticketIsOverdue($ticket) && in_array($ticket['status'], ['Aberto', 'Em Atendimento'], true)));
+$navItems = [
+    ['label' => 'Dashboard', 'page' => 'dashboard', 'description' => 'Resumo e histórico'],
+    ['label' => 'Setores', 'page' => 'sectors', 'description' => 'Cadastro de áreas'],
+    ['label' => 'Abrir Chamado', 'page' => 'tickets', 'description' => 'Novo atendimento'],
+    ['label' => 'Acompanhamento', 'page' => 'monitor', 'description' => 'Check-in e check-out'],
+];
 
 require __DIR__ . '/../views/layout.php';

@@ -1,44 +1,17 @@
-## O que este projeto entrega
+# Controle de Atendimentos
 
-O sistema foi organizado para cobrir os requisitos do desafio e deixar a operação fácil de entender:
+Projeto em PHP puro com SQLite para controle de chamados internos, setores e prioridades.
+
+## Visao geral
+
+O sistema foi desenvolvido para atender ao desafio tecnico com foco em:
 
 - cadastro de setores
-- abertura de chamados com vínculo ao setor, prioridade e SLA em horas
-- check-in e check-out com controle de status
-- registro de solução, responsável e motivo de atraso
-- destaque visual para chamados fora do prazo
-- histórico separado por perfil de uso
-- versão responsiva para desktop e mobile
-
-## Como cada requisito foi atendido
-
-- **Cadastro de Setores**: disponível na área de setores.
-- **Cadastro de Prioridades com tempo estimado**: o nível e o SLA são informados na abertura do chamado.
-- **Cadastro do Chamado**: o chamado nasce com status `Aberto`, vinculado ao setor e ao nível de prioridade.
-- **Atendimento (Check-in)**: registra data e hora de início, somente para chamados ainda válidos.
-- **Finalização (Check-out)**: registra data/hora de término e a solução aplicada.
-- **Listagem dos chamados**: mostra setor, prioridade, status atual, tempo total e histórico do atendimento.
-- **Destaque de SLA**: chamados abertos ou em atendimento que ultrapassam o prazo recebem destaque e pedem justificativa quando necessário.
-
-## Fluxo por perfil
-
-Ao entrar no sistema, a pessoa escolhe um perfil:
-
-- `Solicitante`
-  - abre chamado
-  - vê seus próprios chamados
-  - acompanha o andamento usando o mesmo nome informado na entrada
-
-- `Responsável`
-  - acompanha a fila completa
-  - inicia atendimento
-  - finaliza chamados
-  - registra solução e justificativa de atraso quando houver
-
-Observação importante:
-
-- O solicitante deve usar sempre o mesmo nome para visualizar o histórico salvo.
-- O responsável não depende do mesmo nome para operar a fila.
+- abertura de chamados vinculando setor, nivel de prioridade e SLA em horas, com o valor salvo no proprio chamado
+- check-in e check-out do atendimento
+- cancelamento de chamados com motivo registrado
+- listagem com status, setor, prioridade e tempo total
+- destaque visual para chamados que ultrapassam o SLA
 
 ## Como rodar localmente
 
@@ -60,54 +33,57 @@ http://localhost:8000
 
 ```text
 public/
-  index.php              # Entrada principal da aplicação
+  index.php              # Entrada principal da aplicacao
   assets/
     css/app.css          # Estilos da interface
-    js/app.js            # Interações da interface
+    js/app.js            # Interacoes da interface
 views/
-  layout.php             # Estrutura base da página
+  layout.php             # Estrutura base da pagina
+  partials/              # Componentes reutilizaveis
   pages/                 # Telas separadas por funcionalidade
-  partials/              # Componentes reutilizáveis
 src/
-  Database.php           # Conexão com SQLite
+  Database.php           # Conexao com SQLite
   Repositories/          # Acesso aos dados
-  Support/               # Funções auxiliares
+  Support/               # Funcoes auxiliares
 database/
-  schema.sql             # Criação das tabelas
-  seed.sql               # Base inicial vazia
+  schema.sql             # Criacao das tabelas
+  seed.sql               # Dados iniciais
 ```
 
-## Telas principais
+## Telas
 
-- `Escolha de perfil`: define se a pessoa atua como solicitante ou responsável.
-- `Dashboard`: resumo operacional, chamados recentes, atrasos e fechamentos.
+- `Dashboard`: resumo geral, historico recente e chamados em atraso.
 - `Setores`: cadastro e listagem de setores.
-- `Abrir Chamado`: criação de chamados com setor, prioridade e SLA.
-- `Acompanhamento`: check-in, check-out e histórico de atendimento.
+- `Abrir Chamado`: cadastro do setor, nivel de prioridade e SLA em horas.
+- `Acompanhamento`: check-in, check-out e monitoramento dos chamados.
+
+## Regras do sistema
+
+- Todo chamado nasce com status `Aberto`.
+- O check-in so pode ser feito em chamados abertos.
+- O check-out so pode ser feito em chamados em atendimento.
+- O cancelamento so pode ser feito em chamados abertos ou em atendimento.
+- A listagem destaca chamados que ultrapassam o tempo estimado da prioridade.
+- Chamados nao podem ser excluidos, para manter o historico.
+- Setores podem ser excluidos apenas quando nao estiverem sendo usados.
+- Mensagens de erro e sucesso aparecem na propria interface.
 
 ## Banco de dados
 
-O banco local fica em:
+O banco fica em:
 
 ```text
 database/app.sqlite
 ```
 
-Para testar do zero:
+Se quiser testar do zero:
 
 1. Pare o servidor local.
 2. Apague o arquivo `database/app.sqlite`.
-3. Abra a aplicação novamente.
+3. Abra a aplicacao novamente.
 
-## Interface
+## Link online
 
-- A interface foi pensada para funcionar bem em desktop e mobile.
-- O JavaScript é usado apenas para pequenos detalhes de interação, como o stepper de horas e o modal de encerramento.
-
-# Controle de Atendimentos
-
-Aplicação em PHP puro com SQLite para gerenciar chamados de suporte e solicitações internas.
-
-Versão online:
+Versao online do projeto:
 
 - https://finl1n.alwaysdata.net/
