@@ -79,14 +79,6 @@
                                     <span>Prioridade</span>
                                     <strong><?= Formatter::e($ticket['priority_name']) ?> · SLA <?= (int) $ticket['estimated_hours'] ?>h</strong>
                                 </div>
-                                <div class="ticket-detail">
-                                    <span>Tempo total</span>
-                                    <strong>
-                                        <?= $ticket['started_at'] === null
-                                            ? Formatter::durationFromMinutes($durationMinutes)
-                                            : Formatter::durationFromMinutes($durationMinutes) ?>
-                                    </strong>
-                                </div>
                             </div>
 
                             <?php if (!empty($ticket['description'])): ?>
@@ -111,15 +103,33 @@
                                             <span>Setor: <?= Formatter::e($ticket['sector_name']) ?></span>
                                             <span>Prioridade: <?= Formatter::e($ticket['priority_name']) ?></span>
                                             <span>Responsável: <?= Formatter::e($ticket['responder_name'] ?? 'Não informado') ?></span>
-                                            <span>Tempo: <?= Formatter::durationFromMinutes($durationMinutes) ?></span>
                                         </div>
                                         <?php if (!empty($ticket['delay_reason'])): ?>
                                             <div class="solution-card__delay">
-                                                <div class="solution-card__label">Motivo do atraso</div>
+                                                <div class="solution-card__label">Atraso registrado</div>
                                                 <div class="solution-card__body"><?= Formatter::multiline($ticket['delay_reason']) ?></div>
                                             </div>
                                         <?php endif; ?>
                                         <div class="solution-card__body"><?= Formatter::multiline($ticket['solution']) ?></div>
+                                    </div>
+                                </div>
+                            <?php elseif ($ticket['status'] === 'Cancelado'): ?>
+                                <div class="solution-block">
+                                    <div class="solution-card solution-card--solution">
+                                        <div class="solution-card__hero">
+                                            <div>
+                                                <div class="solution-card__label">Chamado cancelado</div>
+                                                <div class="solution-card__title">Encerramento sem conclusão operacional</div>
+                                            </div>
+                                            <span class="pill status-canceled">Cancelado</span>
+                                        </div>
+                                        <div class="solution-card__meta">
+                                            <span>Protocolo: #<?= Formatter::e(ticketReference($ticket)) ?></span>
+                                            <span>Setor: <?= Formatter::e($ticket['sector_name']) ?></span>
+                                            <span>Prioridade: <?= Formatter::e($ticket['priority_name']) ?></span>
+                                            <span>Cancelado por: <?= Formatter::e($ticket['canceled_by'] ?? 'Não informado') ?></span>
+                                        </div>
+                                        <div class="solution-card__body"><?= Formatter::multiline($ticket['cancel_reason'] ?? '') ?></div>
                                     </div>
                                 </div>
                             <?php endif; ?>

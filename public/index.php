@@ -192,9 +192,6 @@ function handleAction(?string $action, SectorRepository $sectorRepository, Prior
             }
 
             $solution = "O que aconteceu: {$whatHappened}\nComo resolveu: {$howSolved}";
-            if ($delayReason !== '') {
-                $solution = "Motivo do atraso: {$delayReason}\n\n" . $solution;
-            }
 
             $ticketRepository->finish((int) $ticket['id'], $responderName, $delayReason !== '' ? $delayReason : null, $solution);
             Flash::set('success', 'Check-out realizado com sucesso.');

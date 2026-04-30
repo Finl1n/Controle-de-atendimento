@@ -111,11 +111,11 @@
                                     <div class="solution-card__meta">
                                         <span>Setor: <?= Formatter::e($ticket['sector_name']) ?></span>
                                         <span>Prioridade: <?= Formatter::e($ticket['priority_name']) ?></span>
-                                        <span>Tempo: <?= Formatter::period($ticket['started_at'] ?? $ticket['created_at'], $ticket['ended_at']) ?></span>
+                                        <span>Responsável: <?= Formatter::e($ticket['responder_name'] ?? 'Não informado') ?></span>
                                     </div>
                                     <?php if (!empty($ticket['delay_reason'])): ?>
                                         <div class="solution-card__delay">
-                                            <div class="solution-card__label">Motivo do atraso</div>
+                                            <div class="solution-card__label">Atraso registrado</div>
                                             <div class="solution-card__body"><?= Formatter::multiline($ticket['delay_reason']) ?></div>
                                         </div>
                                     <?php endif; ?>
