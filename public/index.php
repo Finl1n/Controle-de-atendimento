@@ -267,9 +267,7 @@ function requireInt(string $key, string $message): int
 function computeTicketDuration(array $ticket): array
 {
     $tz = new DateTimeZone('America/Sao_Paulo');
-    $referenceStart = !empty($ticket['started_at'])
-        ? $ticket['started_at']
-        : ($ticket['created_at'] ?? null);
+    $referenceStart = $ticket['created_at'] ?? null;
 
     if ($referenceStart === null || $referenceStart === '') {
         return [0, null];

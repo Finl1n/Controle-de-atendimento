@@ -12,6 +12,27 @@
     const openFinishButtons = document.querySelectorAll('[data-open-finish]');
     const closeModalButton = document.querySelector('[data-close-modal]');
 
+    function parseTicketDateTime(value) {
+        if (!value) {
+            return null;
+        }
+
+        const parsed = new Date(String(value).replace(' ', 'T'));
+
+        return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+
+    function isTicketOverdue(createdAt, estimatedHours) {
+        const referenceDate = parseTicketDateTime(createdAt);
+        const hours = Number(estimatedHours || 0);
+
+        if (!referenceDate || !Number.isFinite(hours) || hours <= 0) {
+            return false;
+        }
+
+        return Date.now() - referenceDate.getTime() > hours * 60 * 60 * 1000;
+    }
+
     const presets = {
         Baixa: 72,
         Média: 24,
@@ -44,7 +65,10 @@
         openFinishButtons.forEach(function (button) {
             button.addEventListener('click', function () {
                 modalTicketId.value = this.dataset.ticketId || '';
-                const overdue = this.dataset.ticketOverdue === '1';
+                const overdue = isTicketOverdue(
+                    this.dataset.ticketCreatedAt,
+                    this.dataset.ticketEstimatedHours
+                );
 
                 modalResponderName.value = defaultResponderName;
                 modalWhatHappened.value = '';

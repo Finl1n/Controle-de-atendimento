@@ -148,7 +148,14 @@
                                         <button type="submit" class="secondary">Iniciar atendimento</button>
                                     </form>
                                 <?php elseif (canFinish($ticket)): ?>
-                                    <button type="button" class="secondary" data-open-finish data-ticket-id="<?= (int) $ticket['id'] ?>" data-ticket-overdue="<?= $isOverdue ? '1' : '0' ?>">Finalizar</button>
+                                    <button
+                                        type="button"
+                                        class="secondary"
+                                        data-open-finish
+                                        data-ticket-id="<?= (int) $ticket['id'] ?>"
+                                        data-ticket-created-at="<?= Formatter::e($ticket['created_at']) ?>"
+                                        data-ticket-estimated-hours="<?= (int) $ticket['estimated_hours'] ?>"
+                                    >Finalizar</button>
                                 <?php else: ?>
                                     <span class="pill ticket-status-pill"><?= Formatter::e(ticketStatusLabel($ticket)) ?></span>
                                 <?php endif; ?>
