@@ -77,6 +77,7 @@ function ensureTicketColumns(PDO $pdo): void
         'requester_name' => 'ALTER TABLE tickets ADD COLUMN requester_name TEXT NULL',
         'responder_name' => 'ALTER TABLE tickets ADD COLUMN responder_name TEXT NULL',
         'delay_reason' => 'ALTER TABLE tickets ADD COLUMN delay_reason TEXT NULL',
+        'estimated_hours' => 'ALTER TABLE tickets ADD COLUMN estimated_hours INTEGER NULL',
     ];
 
     foreach ($required as $column => $sql) {
@@ -87,6 +88,16 @@ function ensureTicketColumns(PDO $pdo): void
 
     $pdo->exec('UPDATE tickets SET protocol_number = id WHERE protocol_number IS NULL');
     $pdo->exec("UPDATE tickets SET requester_name = 'Solicitante não informado' WHERE requester_name IS NULL OR requester_name = ''");
+    $pdo->exec('
+        UPDATE tickets
+        SET estimated_hours = (
+            SELECT priorities.estimated_hours
+            FROM priorities
+            WHERE priorities.id = tickets.priority_id
+        )
+        WHERE estimated_hours IS NULL
+    ');
+    $pdo->exec('UPDATE tickets SET estimated_hours = 1 WHERE estimated_hours IS NULL OR estimated_hours <= 0');
 }
 
 function handleAction(?string $action, SectorRepository $sectorRepository, PriorityRepository $priorityRepository, TicketRepository $ticketRepository): void
@@ -177,8 +188,8 @@ function handleAction(?string $action, SectorRepository $sectorRepository, Prior
                 throw new RuntimeException('Informe o título do chamado.');
             }
 
-            $priorityId = $priorityRepository->upsert($priorityName, (int) $estimatedHours);
-            $ticketId = $ticketRepository->create((int) $sectorId, $priorityId, $requesterName, $title, $description !== '' ? $description : null);
+            $priorityId = $priorityRepository->findOrCreate($priorityName, (int) $estimatedHours);
+            $ticketId = $ticketRepository->create((int) $sectorId, $priorityId, (int) $estimatedHours, $requesterName, $title, $description !== '' ? $description : null);
             Flash::set('success', 'Chamado #' . ticketReference(['id' => $ticketId, 'protocol_number' => $ticketId]) . ' criado com status Aberto.');
             break;
 
@@ -278,7 +289,7 @@ function computeTicketDuration(array $ticket): array
         ? new DateTimeImmutable($ticket['ended_at'], $tz)
         : new DateTimeImmutable('now', $tz);
     $minutes = max(0, (int) floor(($end->getTimestamp() - $start->getTimestamp()) / 60));
-    $estimatedMinutes = ((int) $ticket['estimated_hours']) * 60;
+    $estimatedMinutes = ((int) ($ticket['estimated_hours'] ?? 0)) * 60;
 
     return [$minutes, $minutes > $estimatedMinutes ? 'overdue' : null];
 }

@@ -17,8 +17,7 @@ final class TicketRepository
 SELECT
     t.*,
     s.name AS sector_name,
-    p.name AS priority_name,
-    p.estimated_hours AS estimated_hours
+    p.name AS priority_name
 FROM tickets t
 INNER JOIN sectors s ON s.id = t.sector_id
 INNER JOIN priorities p ON p.id = t.priority_id
@@ -28,16 +27,17 @@ SQL;
         return $this->pdo->query($sql)->fetchAll();
     }
 
-    public function create(int $sectorId, int $priorityId, string $requesterName, string $title, ?string $description): int
+    public function create(int $sectorId, int $priorityId, int $estimatedHours, string $requesterName, string $title, ?string $description): int
     {
         $now = date('Y-m-d H:i:s');
         $stmt = $this->pdo->prepare(
-            'INSERT INTO tickets (sector_id, priority_id, requester_name, title, description, status, created_at, updated_at) VALUES (:sector_id, :priority_id, :requester_name, :title, :description, :status, :created_at, :updated_at)'
+            'INSERT INTO tickets (sector_id, priority_id, estimated_hours, requester_name, title, description, status, created_at, updated_at) VALUES (:sector_id, :priority_id, :estimated_hours, :requester_name, :title, :description, :status, :created_at, :updated_at)'
         );
 
         $stmt->execute([
             'sector_id' => $sectorId,
             'priority_id' => $priorityId,
+            'estimated_hours' => $estimatedHours,
             'requester_name' => $requesterName,
             'title' => $title,
             'description' => $description,

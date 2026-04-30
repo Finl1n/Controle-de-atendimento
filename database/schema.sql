@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS tickets (
     protocol_number INTEGER UNIQUE,
     sector_id INTEGER NOT NULL,
     priority_id INTEGER NOT NULL,
+    estimated_hours INTEGER NOT NULL CHECK (estimated_hours > 0),
     requester_name TEXT NOT NULL,
     title TEXT NOT NULL,
     description TEXT,
