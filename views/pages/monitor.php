@@ -4,7 +4,16 @@
             <h2>Acompanhamento</h2>
             <p>Visualize o ciclo dos chamados e acompanhe o histórico de atendimento.</p>
         </div>
-        <div class="pill"><?= count($tickets) ?> itens</div>
+        <div class="pill"><?= count($monitorTickets) ?> itens</div>
+    </div>
+
+    <div class="filter-bar">
+        <a class="filter-pill <?= $monitorStatusFilter === 'all' ? 'active' : '' ?>" href="?page=monitor&status=all">Todos</a>
+        <a class="filter-pill <?= $monitorStatusFilter === 'active' ? 'active' : '' ?>" href="?page=monitor&status=active">Ativos</a>
+        <a class="filter-pill <?= $monitorStatusFilter === 'open' ? 'active' : '' ?>" href="?page=monitor&status=open">Abertos</a>
+        <a class="filter-pill <?= $monitorStatusFilter === 'overdue' ? 'active' : '' ?>" href="?page=monitor&status=overdue">Abertos em atraso</a>
+        <a class="filter-pill <?= $monitorStatusFilter === 'progress' ? 'active' : '' ?>" href="?page=monitor&status=progress">Em atendimento</a>
+        <a class="filter-pill <?= $monitorStatusFilter === 'finished' ? 'active' : '' ?>" href="?page=monitor&status=finished">Finalizados</a>
     </div>
 
     <div class="summary-grid monitor-summary">
@@ -37,14 +46,14 @@
                     <h3>Histórico recente</h3>
                     <p>Últimos chamados registrados na operação.</p>
                 </div>
-                <span class="pill"><?= count($tickets) ?> registros</span>
+                <span class="pill"><?= count($monitorTickets) ?> registros</span>
             </div>
 
             <div class="ticket-stream">
-                <?php if (count($tickets) === 0): ?>
+                <?php if (count($monitorTickets) === 0): ?>
                     <div class="empty-state">Nenhum chamado cadastrado ainda.</div>
                 <?php else: ?>
-                    <?php foreach ($tickets as $ticket): ?>
+                    <?php foreach ($monitorTickets as $ticket): ?>
                         <?php [$durationMinutes, $flag] = computeTicketDuration($ticket); ?>
                         <?php $isOverdue = $flag === 'overdue'; ?>
                         <article class="ticket-card <?= $isOverdue ? 'ticket-card--overdue' : '' ?>">
@@ -66,7 +75,7 @@
                                 <div class="ticket-card__badge">
                                     <?= $ticket['status'] === 'Cancelado'
                                         ? 'Cancelado'
-                                        : ($isOverdue ? 'Pendente em atraso' : ($ticket['started_at'] === null ? 'Aguardando início' : Formatter::durationFromMinutes($durationMinutes))) ?>
+                                        : ($isOverdue ? 'Aberto em atraso' : ($ticket['started_at'] === null ? 'Aberto' : Formatter::durationFromMinutes($durationMinutes))) ?>
                                 </div>
                             </div>
 
@@ -161,14 +170,14 @@
                     <h3>Chamados em atraso</h3>
                     <p>Itens que ultrapassaram o SLA da prioridade.</p>
                 </div>
-                <span class="pill danger"><?= count($overdueTickets) ?></span>
+                <span class="pill danger"><?= count($monitorOverdueTickets) ?></span>
             </div>
 
             <div class="list-stack">
-                <?php if (count($overdueTickets) === 0): ?>
+                <?php if (count($monitorOverdueTickets) === 0): ?>
                     <div class="empty-state">Nenhum chamado fora do prazo no momento.</div>
                 <?php else: ?>
-                    <?php foreach (array_slice($overdueTickets, 0, 4) as $ticket): ?>
+                    <?php foreach (array_slice($monitorOverdueTickets, 0, 4) as $ticket): ?>
                         <div class="list-item alert-item">
                             <strong><?= Formatter::e($ticket['title']) ?></strong>
                             <span><?= Formatter::e($ticket['sector_name']) ?> · SLA <?= (int) $ticket['estimated_hours'] ?>h</span>

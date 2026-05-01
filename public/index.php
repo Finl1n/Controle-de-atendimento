@@ -39,6 +39,12 @@ $flash = Flash::get();
 $sectors = $sectorRepository->all();
 $tickets = $ticketRepository->allWithRelations();
 $summary = summarizeTickets($tickets);
+$monitorStatusFilter = $_GET['status'] ?? 'all';
+if (!in_array($monitorStatusFilter, ['all', 'open', 'overdue', 'progress', 'finished', 'active'], true)) {
+    $monitorStatusFilter = 'all';
+}
+$monitorTickets = sortTicketsForMonitor(filterTicketsByStatus($tickets, $monitorStatusFilter));
+$monitorOverdueTickets = sortTicketsForMonitor(array_values(array_filter($tickets, static fn (array $ticket): bool => ticketIsOverdue($ticket))));
 
 function ensureSchema(PDO $pdo): void
 {
@@ -347,11 +353,11 @@ function canCancel(array $ticket): bool
 function ticketStatusLabel(array $ticket): string
 {
     if (ticketIsOverdue($ticket)) {
-        return $ticket['status'] === 'Aberto' ? 'Pendente em atraso' : 'Em atraso';
+        return $ticket['status'] === 'Aberto' ? 'Aberto em atraso' : 'Em atraso';
     }
 
     return match ($ticket['status']) {
-        'Aberto' => 'Aguardando início',
+        'Aberto' => 'Aberto',
         'Em Atendimento' => 'Em atendimento',
         'Finalizado' => 'Concluído',
         'Cancelado' => 'Cancelado',
@@ -377,6 +383,73 @@ function ticketReference(array $ticket): string
     }
 
     return str_pad((string) (int) $number, 6, '0', STR_PAD_LEFT);
+}
+
+function ticketPriorityRank(array $ticket): int
+{
+    return match ($ticket['priority_name'] ?? '') {
+        'Alta' => 3,
+        'Média' => 2,
+        'Baixa' => 1,
+        default => 0,
+    };
+}
+
+function ticketStatusRank(array $ticket): int
+{
+    return match ($ticket['status'] ?? '') {
+        'Aberto' => 4,
+        'Em Atendimento' => 3,
+        'Finalizado' => 2,
+        'Cancelado' => 1,
+        default => 0,
+    };
+}
+
+function sortTicketsForMonitor(array $tickets): array
+{
+    usort($tickets, static function (array $left, array $right): int {
+        $leftOverdue = ticketIsOverdue($left) ? 1 : 0;
+        $rightOverdue = ticketIsOverdue($right) ? 1 : 0;
+
+        if ($leftOverdue !== $rightOverdue) {
+            return $rightOverdue <=> $leftOverdue;
+        }
+
+        $priorityComparison = ticketPriorityRank($right) <=> ticketPriorityRank($left);
+        if ($priorityComparison !== 0) {
+            return $priorityComparison;
+        }
+
+        $statusComparison = ticketStatusRank($right) <=> ticketStatusRank($left);
+        if ($statusComparison !== 0) {
+            return $statusComparison;
+        }
+
+        $leftCreated = strtotime((string) ($left['created_at'] ?? '')) ?: 0;
+        $rightCreated = strtotime((string) ($right['created_at'] ?? '')) ?: 0;
+        if ($leftCreated !== $rightCreated) {
+            return $rightCreated <=> $leftCreated;
+        }
+
+        return (int) ($right['id'] ?? 0) <=> (int) ($left['id'] ?? 0);
+    });
+
+    return $tickets;
+}
+
+function filterTicketsByStatus(array $tickets, string $filter): array
+{
+    return array_values(array_filter($tickets, static function (array $ticket) use ($filter): bool {
+        return match ($filter) {
+            'open' => $ticket['status'] === 'Aberto',
+            'overdue' => ticketIsOverdue($ticket),
+            'progress' => $ticket['status'] === 'Em Atendimento',
+            'finished' => $ticket['status'] === 'Finalizado',
+            'active' => $ticket['status'] !== 'Finalizado',
+            default => true,
+        };
+    }));
 }
 
 $meta = pageTitle($page);
