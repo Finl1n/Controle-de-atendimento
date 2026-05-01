@@ -1,89 +1,136 @@
 # Controle de Atendimentos
 
-Projeto em PHP puro com SQLite para controle de chamados internos, setores e prioridades.
+Sistema em PHP puro com SQLite para controle de chamados internos, setores e prioridades.
 
-## Visao geral
-
-O sistema foi desenvolvido para atender ao desafio tecnico com foco em:
+## Funcionalidades
 
 - cadastro de setores
-- abertura de chamados vinculando setor, nivel de prioridade e SLA em horas, com o valor salvo no proprio chamado
-- check-in e check-out do atendimento
+- abertura de chamados com setor, prioridade e SLA em horas
+- check-in do atendimento
+- check-out do atendimento
 - cancelamento de chamados com motivo registrado
-- listagem com status, setor, prioridade e tempo total
-- destaque visual para chamados que ultrapassam o SLA
+- monitoramento com status, tempo total e destaque de atraso
+- filtros por status no acompanhamento
 
-## Como rodar localmente
+## Requisitos
 
-1. Instale o PHP com suporte a `pdo_sqlite`.
-2. Abra o terminal na raiz do projeto.
-3. Execute:
+- PHP 8.x
+- suporte a `pdo_sqlite`
+- navegador web
+
+## Como iniciar a aplicação
+
+### No Laragon
+
+1. Abra o Laragon.
+2. Clique em `Start All`.
+3. Abra o terminal dentro da pasta do projeto.
+4. Execute:
 
 ```bash
 php -S localhost:8000 -t public
 ```
 
-4. Abra no navegador:
+5. Acesse no navegador:
 
 ```text
 http://localhost:8000
 ```
 
+### No Git Bash com Laragon
+
+Se `php` não estiver no `PATH`, use o executável do Laragon:
+
+```bash
+/c/laragon/bin/php/php-8.3.30-Win32-vs16-x64/php.exe -S localhost:8000 -t public
+```
+
+### No CMD / PowerShell
+
+Na raiz do projeto, execute:
+
+```bash
+php -S localhost:8000 -t public
+```
+
+Se o comando não for reconhecido, use o caminho completo do `php.exe`.
+
 ## Estrutura do projeto
 
 ```text
 public/
-  index.php              # Entrada principal da aplicacao
+  index.php
   assets/
-    css/app.css          # Estilos da interface
-    js/app.js            # Interacoes da interface
+    css/app.css
+    js/app.js
 views/
-  layout.php             # Estrutura base da pagina
-  partials/              # Componentes reutilizaveis
-  pages/                 # Telas separadas por funcionalidade
+  layout.php
+  pages/
+  partials/
 src/
-  Database.php           # Conexao com SQLite
-  Repositories/          # Acesso aos dados
-  Support/               # Funcoes auxiliares
+  Database.php
+  Repositories/
+  Support/
 database/
-  schema.sql             # Criacao das tabelas
-  seed.sql               # Dados iniciais
+  schema.sql
+  seed.sql
+  app.sqlite
 ```
 
 ## Telas
 
-- `Dashboard`: resumo geral, historico recente e chamados em atraso.
+- `Dashboard`: resumo geral, chamados recentes e chamados em atraso.
 - `Setores`: cadastro e listagem de setores.
-- `Abrir Chamado`: cadastro do setor, nivel de prioridade e SLA em horas.
-- `Acompanhamento`: check-in, check-out e monitoramento dos chamados.
+- `Abrir Chamado`: abertura de chamados com setor, prioridade e SLA.
+- `Acompanhamento`: check-in, check-out, cancelamento e filtros por status.
 
-## Regras do sistema
+## Regras
 
-- Todo chamado nasce com status `Aberto`.
-- O check-in so pode ser feito em chamados abertos.
-- O check-out so pode ser feito em chamados em atendimento.
-- O cancelamento so pode ser feito em chamados abertos ou em atendimento.
-- A listagem destaca chamados que ultrapassam o tempo estimado da prioridade.
-- Chamados nao podem ser excluidos, para manter o historico.
-- Setores podem ser excluidos apenas quando nao estiverem sendo usados.
-- Mensagens de erro e sucesso aparecem na propria interface.
+- Todo chamado começa com status `Aberto`.
+- O check-in só pode ser feito em chamados abertos.
+- O check-out só pode ser feito em chamados em atendimento.
+- O cancelamento só pode ser feito em chamados abertos ou em atendimento.
+- Chamados em atraso são calculados com base na data de criação e no SLA da prioridade.
+- O SLA fica salvo no próprio chamado, para não alterar chamados antigos quando uma prioridade muda.
+- Chamados cancelados não entram na lista de ativos.
 
 ## Banco de dados
 
-O banco fica em:
+O banco local fica em:
 
 ```text
 database/app.sqlite
 ```
 
-Se quiser testar do zero:
+Para reiniciar do zero:
 
-1. Pare o servidor local.
-2. Apague o arquivo `database/app.sqlite`.
-3. Abra a aplicacao novamente.
+1. Pare a aplicação.
+2. Apague `database/app.sqlite`.
+3. Abra a aplicação novamente.
+
+## Teste rápido
+
+1. Crie um setor.
+2. Abra um chamado com prioridade e SLA.
+3. Inicie o atendimento depois de um tempo.
+4. Finalize o chamado.
+5. Teste também o cancelamento.
+6. Confira os filtros do monitor.
+
+## Como testar atraso sem esperar
+
+Para validar a regra de atraso rapidamente, altere o campo `created_at` de um chamado no banco SQLite para um horário anterior ao SLA da prioridade.
+
+Exemplo:
+
+```sql
+UPDATE tickets
+SET created_at = datetime('now', '-2 hours')
+WHERE id = 1;
+```
+
+Depois, recarregue a aplicação. O chamado aparecerá como atrasado com base no tempo estimado da prioridade.
 
 ## Link online
-
-Versao online do projeto:
 
 - https://finl1n.alwaysdata.net/
