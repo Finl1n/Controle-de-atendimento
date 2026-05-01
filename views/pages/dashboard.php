@@ -42,8 +42,9 @@
                                 <p><?= Formatter::e($ticket['sector_name']) ?> · <?= Formatter::e($ticket['priority_name']) ?> · Solicitante: <?= Formatter::e($ticket['requester_name'] ?? 'Não informado') ?></p>
                             </div>
                             <div class="activity-meta">
-                                <span>Aberto em <?= Formatter::dateTime($ticket['created_at']) ?></span>
-                                <span>Tempo <?= $ticket['started_at'] === null ? '-' : Formatter::durationFromMinutes($durationMinutes) ?></span>
+                                <span>Criado em <?= Formatter::dateTime($ticket['created_at']) ?></span>
+                                <span>Iniciado em <?= Formatter::dateTime($ticket['started_at']) ?></span>
+                                <span>Finalizado em <?= Formatter::dateTime($ticket['ended_at'] ?? $ticket['canceled_at']) ?></span>
                             </div>
                     </article>
                 <?php endforeach; ?>

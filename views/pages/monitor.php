@@ -14,6 +14,7 @@
         <a class="filter-pill <?= $monitorStatusFilter === 'overdue' ? 'active' : '' ?>" href="?page=monitor&status=overdue">Abertos em atraso</a>
         <a class="filter-pill <?= $monitorStatusFilter === 'progress' ? 'active' : '' ?>" href="?page=monitor&status=progress">Em atendimento</a>
         <a class="filter-pill <?= $monitorStatusFilter === 'finished' ? 'active' : '' ?>" href="?page=monitor&status=finished">Finalizados</a>
+        <a class="filter-pill <?= $monitorStatusFilter === 'canceled' ? 'active' : '' ?>" href="?page=monitor&status=canceled">Cancelados</a>
     </div>
 
     <div class="summary-grid monitor-summary">
@@ -64,9 +65,9 @@
                                         <span class="pill <?= $isOverdue ? 'pill-alert' : statusClass($ticket['status']) ?>">
                                             <?= Formatter::e(ticketStatusLabel($ticket)) ?>
                                         </span>
-                                        <span class="ticket-card__time">
-                                            <?= Formatter::period($ticket['started_at'] ?? $ticket['created_at'], $ticket['ended_at'] ?? $ticket['canceled_at']) ?>
-                                        </span>
+                                        <span class="ticket-card__time">Criado em <?= Formatter::dateTime($ticket['created_at']) ?></span>
+                                        <span class="ticket-card__time">Iniciado em <?= Formatter::dateTime($ticket['started_at']) ?></span>
+                                        <span class="ticket-card__time">Finalizado em <?= Formatter::dateTime($ticket['ended_at'] ?? $ticket['canceled_at']) ?></span>
                                     </div>
                                     <h4><?= Formatter::e($ticket['title']) ?></h4>
                                     <p><?= Formatter::e($ticket['sector_name']) ?> · <?= Formatter::e($ticket['priority_name']) ?> · Solicitante: <?= Formatter::e($ticket['requester_name'] ?? 'Não informado') ?></p>

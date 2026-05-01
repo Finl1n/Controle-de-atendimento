@@ -40,7 +40,7 @@ $sectors = $sectorRepository->all();
 $tickets = $ticketRepository->allWithRelations();
 $summary = summarizeTickets($tickets);
 $monitorStatusFilter = $_GET['status'] ?? 'all';
-if (!in_array($monitorStatusFilter, ['all', 'open', 'overdue', 'progress', 'finished', 'active'], true)) {
+if (!in_array($monitorStatusFilter, ['all', 'open', 'overdue', 'progress', 'finished', 'active', 'canceled'], true)) {
     $monitorStatusFilter = 'all';
 }
 $monitorTickets = sortTicketsForMonitor(filterTicketsByStatus($tickets, $monitorStatusFilter));
@@ -253,9 +253,7 @@ function requireInt(string $key, string $message): int
 function computeTicketDuration(array $ticket): array
 {
     $tz = new DateTimeZone('America/Sao_Paulo');
-    $referenceStart = !empty($ticket['started_at'])
-        ? $ticket['started_at']
-        : ($ticket['created_at'] ?? null);
+    $referenceStart = $ticket['created_at'] ?? null;
 
     if ($referenceStart === null || $referenceStart === '') {
         return [0, null];
@@ -409,11 +407,11 @@ function ticketStatusRank(array $ticket): int
 function sortTicketsForMonitor(array $tickets): array
 {
     usort($tickets, static function (array $left, array $right): int {
-        $leftOverdue = ticketIsOverdue($left) ? 1 : 0;
-        $rightOverdue = ticketIsOverdue($right) ? 1 : 0;
+        $leftStatus = ticketMonitorStatusRank($left);
+        $rightStatus = ticketMonitorStatusRank($right);
 
-        if ($leftOverdue !== $rightOverdue) {
-            return $rightOverdue <=> $leftOverdue;
+        if ($leftStatus !== $rightStatus) {
+            return $leftStatus <=> $rightStatus;
         }
 
         $priorityComparison = ticketPriorityRank($right) <=> ticketPriorityRank($left);
@@ -438,6 +436,21 @@ function sortTicketsForMonitor(array $tickets): array
     return $tickets;
 }
 
+function ticketMonitorStatusRank(array $ticket): int
+{
+    if (ticketIsOverdue($ticket)) {
+        return 0;
+    }
+
+    return match ($ticket['status'] ?? '') {
+        'Aberto' => 1,
+        'Em Atendimento' => 2,
+        'Finalizado' => 3,
+        'Cancelado' => 4,
+        default => 5,
+    };
+}
+
 function filterTicketsByStatus(array $tickets, string $filter): array
 {
     return array_values(array_filter($tickets, static function (array $ticket) use ($filter): bool {
@@ -446,7 +459,8 @@ function filterTicketsByStatus(array $tickets, string $filter): array
             'overdue' => ticketIsOverdue($ticket),
             'progress' => $ticket['status'] === 'Em Atendimento',
             'finished' => $ticket['status'] === 'Finalizado',
-            'active' => $ticket['status'] !== 'Finalizado',
+            'canceled' => $ticket['status'] === 'Cancelado',
+            'active' => in_array($ticket['status'], ['Aberto', 'Em Atendimento'], true),
             default => true,
         };
     }));
