@@ -58,23 +58,41 @@ Se o comando não for reconhecido, use o caminho completo do `php.exe`.
 ## Estrutura do projeto
 
 ```text
-public/
-  index.php
-  assets/
-    css/app.css
-    js/app.js
-views/
-  layout.php
-  pages/
-  partials/
-src/
-  Database.php
-  Repositories/
-  Support/
-database/
-  schema.sql
-  seed.sql
-  app.sqlite
+.
+├─ .gitignore
+├─ .htaccess
+├─ README.md
+├─ public/
+│  ├─ index.php
+│  └─ assets/
+│     ├─ css/app.css
+│     └─ js/app.js
+├─ views/
+│  ├─ layout.php
+│  ├─ pages/
+│  │  ├─ dashboard.php
+│  │  ├─ monitor.php
+│  │  ├─ sectors.php
+│  │  └─ tickets.php
+│  └─ partials/
+│     ├─ cancel-modal.php
+│     ├─ finish-modal.php
+│     ├─ flash.php
+│     ├─ sidebar.php
+│     └─ topbar.php
+├─ src/
+│  ├─ Database.php
+│  ├─ Repositories/
+│  │  ├─ PriorityRepository.php
+│  │  ├─ SectorRepository.php
+│  │  └─ TicketRepository.php
+│  └─ Support/
+│     ├─ Flash.php
+│     └─ Formatter.php
+└─ database/
+   ├─ app.sqlite
+   ├─ schema.sql
+   └─ seed.sql
 ```
 
 ## Telas
